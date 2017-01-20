@@ -1,0 +1,54 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion project.sdk
+    buildToolsVersion project.buildTools
+
+    defaultConfig {
+        minSdkVersion project.minSdk
+        targetSdkVersion project.sdk
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+dependencies {
+    compile 'io.reactivex:rxjava:1.1.6'
+
+    compile 'com.google.firebase:firebase-core:' + project.googleVersion
+    compile 'com.google.firebase:firebase-database:' + project.googleVersion
+
+    compile 'com.google.firebase:firebase-auth:' + project.googleVersion
+    compile 'com.google.android.gms:play-services-auth:' + project.googleVersion
+
+}
+
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'EasyFirebase'
+    orgName = 'florent37'
+
+    publishedGroupId = 'com.github.florent37'
+    libraryName = 'EasyFirebase'
+    artifact = 'easyfirebase'
+
+    libraryDescription = 'EasyFirebase'
+
+    siteUrl = 'https://github.com/florent37/EasyFirebase'
+    gitUrl = 'https://github.com/florent37/EasyFirebase.git'
+
+    libraryVersion = rootProject.ext.libraryVersion
+
+    developerId = 'florent37'
+    developerName = 'Florent Champigny'
+    developerEmail = 'champigny.florent@gmail.com'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+
+if (project.rootProject.file('local.properties').exists()) {
+    apply from: rootProject.file('gradle/install-v1.gradle')
+    apply from: rootProject.file('gradle/bintray-android-v1.gradle')
+}

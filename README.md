@@ -46,7 +46,7 @@ public void onActivityResult(int requestCode, int resultCode, Intent data) {
 easyFirebaseAuth.signInWithGoogle((Activity)this)
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
-                .subscribe(firebaseUser -> {
+                .subscribe(Pair<googleSignInAccount, firebaseUser> -> {
                     //user is connected
                     final String id = firebaseUser.getUid();
                     final String name = firebaseUser.getDisplayName();

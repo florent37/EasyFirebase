@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.util.Pair;
 
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -21,28 +22,19 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import rx.Observable;
 import rx.Subscriber;
 
-/**
- * Created by florentchampigny on 18/01/2017.
- */
-
 public class EasyFirebaseAuth {
 
-    public interface Callback {
-        void onUserConnected(FirebaseUser user);
-    }
-
     public static final int RC_SIGN_IN = 10021;
-
-    @Nullable
-    private Subscriber<? super FirebaseUser> firebaseUserSubscriber;
-
-    private FirebaseAuth mAuth;
-
-    private Callback callback;
-
-    private FirebaseAuth.AuthStateListener mAuthListener;
-
     private final GoogleApiClient googleApiClient;
+    @Nullable
+    private Subscriber<? super Pair<GoogleSignInAccount, FirebaseUser>> firebaseUserSubscriber;
+    private FirebaseAuth mAuth;
+    @Nullable
+    private Subscriber<? super FirebaseUser> loggedSubcriber;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+    private
+    @Nullable
+    GoogleSignInAccount googleSignInAccount;
 
     public EasyFirebaseAuth(GoogleApiClient googleApiClient) {
         mAuth = FirebaseAuth.getInstance();
@@ -54,11 +46,11 @@ public class EasyFirebaseAuth {
                 final FirebaseUser user = firebaseAuth.getCurrentUser();
                 if (user != null) {
                     if (firebaseUserSubscriber != null) {
-                        firebaseUserSubscriber.onNext(user);
+                        firebaseUserSubscriber.onNext(new Pair<GoogleSignInAccount, FirebaseUser>(googleSignInAccount, user));
                         firebaseUserSubscriber.onCompleted();
                     }
-                    if (callback != null) {
-                        callback.onUserConnected(user);
+                    if (loggedSubcriber != null) {
+                        loggedSubcriber.onNext(user);
                     }
                     // User is signed in
                     Log.d("TAG", "onAuthStateChanged:signed_in:" + user.getUid());
@@ -70,8 +62,13 @@ public class EasyFirebaseAuth {
         };
     }
 
-    public void setCallback(Callback callback) {
-        this.callback = callback;
+    public Observable<FirebaseUser> onUserLogged() {
+        return Observable.create(new Observable.OnSubscribe<FirebaseUser>() {
+            @Override
+            public void call(Subscriber<? super FirebaseUser> subscriber) {
+                loggedSubcriber = subscriber;
+            }
+        });
     }
 
     public void onStart() {
@@ -90,8 +87,8 @@ public class EasyFirebaseAuth {
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             if (result.isSuccess()) {
                 // Google Sign In was successful, authenticate with Firebase
-                GoogleSignInAccount account = result.getSignInAccount();
-                AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
+                googleSignInAccount = result.getSignInAccount();
+                AuthCredential credential = GoogleAuthProvider.getCredential(googleSignInAccount.getIdToken(), null);
                 mAuth.signInWithCredential(credential)
                         .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                             @Override
@@ -117,13 +114,13 @@ public class EasyFirebaseAuth {
         }
     }
 
-    public Observable<FirebaseUser> signInWithGoogle(Activity activity) {
+    public Observable<Pair<GoogleSignInAccount, FirebaseUser>> signInWithGoogle(Activity activity) {
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
         activity.startActivityForResult(signInIntent, RC_SIGN_IN);
 
-        return Observable.create(new Observable.OnSubscribe<FirebaseUser>() {
+        return Observable.create(new Observable.OnSubscribe<Pair<GoogleSignInAccount, FirebaseUser>>() {
             @Override
-            public void call(Subscriber<? super FirebaseUser> s) {
+            public void call(Subscriber<? super Pair<GoogleSignInAccount, FirebaseUser>> s) {
                 firebaseUserSubscriber = s;
             }
         });
